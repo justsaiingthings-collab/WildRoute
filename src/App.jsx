@@ -39,10 +39,12 @@ const STYLES = `
   .search-panel h2{font-family:'Playfair Display',serif;font-size:1.1rem;color:${C.mist};margin-bottom:18px;display:flex;align-items:center;gap:8px;}
   .field-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:14px;margin-bottom:16px;}
   .field label{display:block;font-size:.75rem;text-transform:uppercase;letter-spacing:.08em;color:${C.sage};margin-bottom:5px;}
-  .field input,.field select{width:100%;background:rgba(255,255,255,.08);border:1px solid rgba(200,216,204,.2);border-radius:8px;padding:9px 12px;color:${C.cream};font-family:inherit;font-size:.9rem;outline:none;transition:border-color .2s;}
+  .field input,.field select{width:100%;background:rgba(255,255,255,.08);border:1px solid rgba(200,216,204,.2);border-radius:8px;padding:9px 12px;color:${C.cream};font-family:inherit;font-size:.9rem;outline:none;transition:border-color .2s;-webkit-appearance:none;}
   .field input::placeholder{color:${C.stone};}
   .field input:focus,.field select:focus{border-color:${C.sage};}
   .field select option{background:${C.pine};}
+  .search-bottom{display:flex;align-items:center;gap:12px;flex-wrap:wrap;}
+  .search-bottom .btn-search{min-width:140px;}
 
   /* location */
   .loc-wrap{position:relative;}
@@ -159,10 +161,38 @@ const STYLES = `
   @keyframes spin{to{transform:rotate(360deg);}}
   .spin-inline{display:inline-block;animation:spin .8s linear infinite;}
 
-  @media(max-width:560px){
+  @media(max-width:768px){
+    .app-shell{padding:0 12px 48px;}
+    .app-header{padding:20px 0 16px;gap:10px;}
+    .logo-icon{font-size:2.2rem;}
+    .app-title h1{font-size:1.5rem;}
+    .search-panel{padding:16px;}
     .field-grid{grid-template-columns:1fr 1fr;}
-    .tab-btn span.label{display:none;}
+    .date-shortcuts{gap:5px;}
+    .chip{padding:4px 10px;font-size:.73rem;}
+    .tab-bar{gap:2px;}
+    .tab-btn{padding:9px 4px;font-size:.78rem;gap:4px;}
     .card-grid,.sk-grid{grid-template-columns:1fr;}
+    .filter-bar{gap:6px;}
+  }
+
+  @media(max-width:480px){
+    .app-header{flex-direction:row;align-items:center;}
+    .field-grid{grid-template-columns:1fr;}
+    .tab-btn span.label{display:none;}
+    .tab-btn{font-size:.82rem;padding:9px 8px;}
+    .search-panel h2{font-size:1rem;}
+    .btn-search{width:100%;justify-content:center;padding:12px;}
+    .date-shortcuts{gap:4px;}
+    .chip{padding:4px 9px;font-size:.71rem;}
+    .card-grid,.sk-grid{grid-template-columns:1fr;}
+    .result-card{padding:16px;}
+    .card-title{font-size:1rem;}
+    .explainer-grid{grid-template-columns:1fr 1fr;}
+    .disp-links{flex-direction:column;gap:8px;}
+    .filter-bar{gap:5px;}
+    .status-row{gap:5px;}
+    .suggestions-dropdown{font-size:.84rem;}
   }
 `;
 
@@ -209,89 +239,257 @@ async function streamClaude({ sys, usr, onChunk, onDone, onError }) {
   } catch (e) { onError(e.message); }
 }
 
-// ─── Popular outdoor destinations for instant client-side suggestions ─
+// ─── Comprehensive destinations: US & Canadian national parks, state parks, PNW cities ─
 const DESTINATIONS = [
-  { label:"Yosemite, CA",           sublabel:"Yosemite National Park",              type:"park"   },
-  { label:"Yellowstone, WY",        sublabel:"Yellowstone National Park",           type:"park"   },
-  { label:"Grand Canyon, AZ",       sublabel:"Grand Canyon National Park",          type:"park"   },
-  { label:"Zion, UT",               sublabel:"Zion National Park",                  type:"park"   },
-  { label:"Olympic Peninsula, WA",  sublabel:"Olympic National Park & Forest",      type:"forest" },
-  { label:"Rocky Mountain, CO",     sublabel:"Rocky Mountain National Park",        type:"park"   },
-  { label:"Glacier, MT",            sublabel:"Glacier National Park",               type:"park"   },
-  { label:"Acadia, ME",             sublabel:"Acadia National Park",                type:"park"   },
-  { label:"Joshua Tree, CA",        sublabel:"Joshua Tree National Park",           type:"park"   },
-  { label:"Sequoia, CA",            sublabel:"Sequoia & Kings Canyon NP",           type:"park"   },
-  { label:"Great Smoky Mountains, TN", sublabel:"Great Smoky Mountains NP",         type:"park"   },
-  { label:"Shenandoah, VA",         sublabel:"Shenandoah National Park",            type:"park"   },
-  { label:"Bryce Canyon, UT",       sublabel:"Bryce Canyon National Park",          type:"park"   },
-  { label:"Arches, UT",             sublabel:"Arches National Park",                type:"park"   },
-  { label:"Canyonlands, UT",        sublabel:"Canyonlands National Park",           type:"park"   },
-  { label:"Bend, OR",               sublabel:"Central Oregon — Cascade Range",      type:"city"   },
-  { label:"Moab, UT",               sublabel:"Red rock country, Colorado Plateau",  type:"city"   },
-  { label:"Sedona, AZ",             sublabel:"Red rock formations & trails",        type:"city"   },
-  { label:"Asheville, NC",          sublabel:"Blue Ridge Mountains gateway",        type:"city"   },
-  { label:"Flagstaff, AZ",          sublabel:"Gateway to Grand Canyon & forests",   type:"city"   },
-  { label:"Bozeman, MT",            sublabel:"Near Yellowstone & Gallatin NF",      type:"city"   },
-  { label:"Jackson, WY",            sublabel:"Gateway to Grand Teton & Yellowstone",type:"city"   },
-  { label:"Lake Tahoe, CA",         sublabel:"Sierra Nevada alpine lake",           type:"region" },
-  { label:"Big Sur, CA",            sublabel:"Coastal redwoods & Pacific views",    type:"region" },
-  { label:"Adirondacks, NY",        sublabel:"Adirondack Park — 6M acres",          type:"region" },
-  { label:"White Mountains, NH",    sublabel:"White Mountain National Forest",      type:"forest" },
-  { label:"Okanogan-Wenatchee, WA", sublabel:"Okanogan-Wenatchee National Forest",  type:"forest" },
-  { label:"Deschutes, OR",          sublabel:"Deschutes National Forest",           type:"forest" },
-  { label:"Pike-San Isabel, CO",    sublabel:"Pike & San Isabel National Forests",  type:"forest" },
-  { label:"Coconino, AZ",           sublabel:"Coconino National Forest",            type:"forest" },
-  { label:"Chattahoochee, GA",      sublabel:"Chattahoochee-Oconee National Forest",type:"forest" },
-  { label:"Black Hills, SD",        sublabel:"Black Hills National Forest",         type:"forest" },
-  { label:"Ouray, CO",              sublabel:"Colorado's 'Switzerland of America'", type:"city"   },
-  { label:"Whitefish, MT",          sublabel:"Near Glacier NP & Flathead NF",       type:"city"   },
-  { label:"Durango, CO",            sublabel:"San Juan Mountains gateway",          type:"city"   },
-  { label:"Hood River, OR",         sublabel:"Columbia River Gorge & Mt Hood",      type:"city"   },
-  { label:"Leavenworth, WA",        sublabel:"Wenatchee NF & Cascades",             type:"city"   },
-  { label:"Estes Park, CO",         sublabel:"Gateway to Rocky Mountain NP",        type:"city"   },
-  { label:"Mammoth Lakes, CA",      sublabel:"Sierra Nevada — Inyo NF",             type:"city"   },
-  { label:"Bishop, CA",             sublabel:"Eastern Sierra & John Muir Wilderness",type:"city"  },
-  { label:"Taos, NM",               sublabel:"Carson NF & Wheeler Peak",            type:"city"   },
-  { label:"Stowe, VT",              sublabel:"Green Mountains & Long Trail",        type:"city"   },
-  { label:"Heber City, UT",         sublabel:"Uinta-Wasatch-Cache NF gateway",      type:"city"   },
-  { label:"Crested Butte, CO",      sublabel:"Gunnison NF & Elk Mountains",         type:"city"   },
-  { label:"Stehekin, WA",           sublabel:"North Cascades NP — no roads in",     type:"park"   },
-  { label:"Frank Church Wilderness, ID", sublabel:"Largest lower-48 wilderness area", type:"forest"},
-  { label:"Boundary Waters, MN",    sublabel:"BWCAW — canoe & portage country",     type:"park"   },
-  { label:"Ozark, MO",              sublabel:"Ozark National Scenic Riverways",     type:"region" },
-  { label:"Pisgah, NC",             sublabel:"Pisgah National Forest",              type:"forest" },
-  { label:"Uwharrie, NC",           sublabel:"Uwharrie National Forest",            type:"forest" },
-  // Pacific Northwest mountains
-  { label:"Mt Rainier, WA",         sublabel:"Mt Rainier National Park",            type:"park"   },
-  { label:"Mount Rainier, WA",      sublabel:"Mt Rainier National Park",            type:"park"   },
-  { label:"Mt Baker, WA",           sublabel:"Mt Baker-Snoqualmie National Forest", type:"forest" },
-  { label:"Mount Baker, WA",        sublabel:"Mt Baker-Snoqualmie National Forest", type:"forest" },
-  { label:"Mt Baker-Snoqualmie, WA",sublabel:"Mt Baker-Snoqualmie National Forest", type:"forest" },
-  { label:"Mt Hood, OR",            sublabel:"Mt Hood National Forest",             type:"forest" },
-  { label:"Mount Hood, OR",         sublabel:"Mt Hood National Forest",             type:"forest" },
-  { label:"Mt St Helens, WA",       sublabel:"Mt St Helens National Volcanic Monument", type:"park"},
-  { label:"Mt Adams, WA",           sublabel:"Gifford Pinchot National Forest",     type:"forest" },
-  { label:"North Cascades, WA",     sublabel:"North Cascades National Park",        type:"park"   },
-  { label:"Bellingham, WA",         sublabel:"Gateway to Mt Baker & North Cascades",type:"city"   },
-  { label:"Enumclaw, WA",           sublabel:"Eastern gateway to Mt Rainier NP",    type:"city"   },
-  { label:"Ashford, WA",            sublabel:"Southwest entrance to Mt Rainier NP", type:"city"   },
-  // More major mountains & volcanoes
-  { label:"Mt Whitney, CA",         sublabel:"Highest peak in lower 48 — Inyo NF",  type:"park"   },
-  { label:"Mt Shasta, CA",          sublabel:"Shasta-Trinity National Forest",       type:"forest" },
-  { label:"Crater Lake, OR",        sublabel:"Crater Lake National Park",            type:"park"   },
-  { label:"Mt Jefferson, OR",       sublabel:"Mt Jefferson Wilderness — Willamette NF", type:"forest"},
-  { label:"Three Sisters, OR",      sublabel:"Three Sisters Wilderness — Deschutes NF", type:"forest"},
-  // Additional popular destinations
-  { label:"Glacier Peak, WA",       sublabel:"Glacier Peak Wilderness — Okanogan NF", type:"forest"},
-  { label:"Enchantments, WA",       sublabel:"Alpine Lakes Wilderness — Okanogan NF", type:"forest"},
-  { label:"Snoqualmie Pass, WA",    sublabel:"Mt Baker-Snoqualmie NF — I-90 corridor", type:"forest"},
-  { label:"Stevens Pass, WA",       sublabel:"Mt Baker-Snoqualmie NF — Hwy 2 corridor", type:"forest"},
-  { label:"Great Basin, NV",        sublabel:"Great Basin National Park",            type:"park"   },
-  { label:"Capitol Reef, UT",       sublabel:"Capitol Reef National Park",           type:"park"   },
-  { label:"Mesa Verde, CO",         sublabel:"Mesa Verde National Park",             type:"park"   },
-  { label:"Wind Cave, SD",          sublabel:"Wind Cave National Park",              type:"park"   },
-  { label:"Badlands, SD",           sublabel:"Badlands National Park",               type:"park"   },
-  { label:"Theodore Roosevelt, ND", sublabel:"Theodore Roosevelt National Park",     type:"park"   },
+  // ── US NATIONAL PARKS ──────────────────────────────────────────
+  { label:"Acadia, ME",                   sublabel:"Acadia National Park",                       type:"park" },
+  { label:"Arches, UT",                   sublabel:"Arches National Park",                       type:"park" },
+  { label:"Badlands, SD",                 sublabel:"Badlands National Park",                     type:"park" },
+  { label:"Big Bend, TX",                 sublabel:"Big Bend National Park",                     type:"park" },
+  { label:"Biscayne, FL",                 sublabel:"Biscayne National Park",                     type:"park" },
+  { label:"Black Canyon of the Gunnison, CO", sublabel:"Black Canyon NP — dramatic gorge",       type:"park" },
+  { label:"Bryce Canyon, UT",             sublabel:"Bryce Canyon National Park",                 type:"park" },
+  { label:"Canyonlands, UT",              sublabel:"Canyonlands National Park",                  type:"park" },
+  { label:"Capitol Reef, UT",             sublabel:"Capitol Reef National Park",                 type:"park" },
+  { label:"Carlsbad Caverns, NM",         sublabel:"Carlsbad Caverns National Park",             type:"park" },
+  { label:"Channel Islands, CA",          sublabel:"Channel Islands National Park",              type:"park" },
+  { label:"Congaree, SC",                 sublabel:"Congaree National Park",                     type:"park" },
+  { label:"Crater Lake, OR",              sublabel:"Crater Lake National Park",                  type:"park" },
+  { label:"Cuyahoga Valley, OH",          sublabel:"Cuyahoga Valley National Park",              type:"park" },
+  { label:"Death Valley, CA",             sublabel:"Death Valley National Park",                 type:"park" },
+  { label:"Denali, AK",                   sublabel:"Denali National Park & Preserve",            type:"park" },
+  { label:"Dry Tortugas, FL",             sublabel:"Dry Tortugas National Park",                 type:"park" },
+  { label:"Everglades, FL",               sublabel:"Everglades National Park",                   type:"park" },
+  { label:"Gates of the Arctic, AK",      sublabel:"Gates of the Arctic National Park",          type:"park" },
+  { label:"Gateway Arch, MO",             sublabel:"Gateway Arch National Park",                 type:"park" },
+  { label:"Glacier, MT",                  sublabel:"Glacier National Park",                      type:"park" },
+  { label:"Glacier Bay, AK",              sublabel:"Glacier Bay National Park",                  type:"park" },
+  { label:"Grand Canyon, AZ",             sublabel:"Grand Canyon National Park",                 type:"park" },
+  { label:"Grand Teton, WY",              sublabel:"Grand Teton National Park",                  type:"park" },
+  { label:"Great Basin, NV",              sublabel:"Great Basin National Park",                  type:"park" },
+  { label:"Great Sand Dunes, CO",         sublabel:"Great Sand Dunes National Park",             type:"park" },
+  { label:"Great Smoky Mountains, TN",    sublabel:"Great Smoky Mountains National Park",        type:"park" },
+  { label:"Guadalupe Mountains, TX",      sublabel:"Guadalupe Mountains National Park",          type:"park" },
+  { label:"Haleakala, HI",               sublabel:"Haleakalā National Park — Maui",             type:"park" },
+  { label:"Hawaii Volcanoes, HI",         sublabel:"Hawaii Volcanoes National Park",             type:"park" },
+  { label:"Hot Springs, AR",              sublabel:"Hot Springs National Park",                  type:"park" },
+  { label:"Indiana Dunes, IN",            sublabel:"Indiana Dunes National Park",                type:"park" },
+  { label:"Isle Royale, MI",              sublabel:"Isle Royale National Park",                  type:"park" },
+  { label:"Joshua Tree, CA",              sublabel:"Joshua Tree National Park",                  type:"park" },
+  { label:"Katmai, AK",                   sublabel:"Katmai National Park — brown bears",         type:"park" },
+  { label:"Kenai Fjords, AK",             sublabel:"Kenai Fjords National Park",                 type:"park" },
+  { label:"Kings Canyon, CA",             sublabel:"Kings Canyon National Park",                 type:"park" },
+  { label:"Kobuk Valley, AK",             sublabel:"Kobuk Valley National Park",                 type:"park" },
+  { label:"Lake Clark, AK",               sublabel:"Lake Clark National Park",                   type:"park" },
+  { label:"Lassen Volcanic, CA",          sublabel:"Lassen Volcanic National Park",              type:"park" },
+  { label:"Mammoth Cave, KY",             sublabel:"Mammoth Cave National Park",                 type:"park" },
+  { label:"Mesa Verde, CO",               sublabel:"Mesa Verde National Park",                   type:"park" },
+  { label:"Mt Rainier, WA",               sublabel:"Mount Rainier National Park",                type:"park" },
+  { label:"Mount Rainier, WA",            sublabel:"Mount Rainier National Park",                type:"park" },
+  { label:"New River Gorge, WV",          sublabel:"New River Gorge National Park",              type:"park" },
+  { label:"North Cascades, WA",           sublabel:"North Cascades National Park",               type:"park" },
+  { label:"Olympic, WA",                  sublabel:"Olympic National Park",                      type:"park" },
+  { label:"Olympic Peninsula, WA",        sublabel:"Olympic National Park & Forest",             type:"park" },
+  { label:"Petrified Forest, AZ",         sublabel:"Petrified Forest National Park",             type:"park" },
+  { label:"Pinnacles, CA",                sublabel:"Pinnacles National Park",                    type:"park" },
+  { label:"Redwood, CA",                  sublabel:"Redwood National & State Parks",             type:"park" },
+  { label:"Rocky Mountain, CO",           sublabel:"Rocky Mountain National Park",               type:"park" },
+  { label:"Saguaro, AZ",                  sublabel:"Saguaro National Park",                      type:"park" },
+  { label:"Sequoia, CA",                  sublabel:"Sequoia National Park",                      type:"park" },
+  { label:"Shenandoah, VA",               sublabel:"Shenandoah National Park",                   type:"park" },
+  { label:"Theodore Roosevelt, ND",       sublabel:"Theodore Roosevelt National Park",           type:"park" },
+  { label:"Virgin Islands, VI",           sublabel:"Virgin Islands National Park",               type:"park" },
+  { label:"Voyageurs, MN",                sublabel:"Voyageurs National Park",                    type:"park" },
+  { label:"White Sands, NM",              sublabel:"White Sands National Park",                  type:"park" },
+  { label:"Wind Cave, SD",                sublabel:"Wind Cave National Park",                    type:"park" },
+  { label:"Wrangell-St. Elias, AK",       sublabel:"Wrangell-St. Elias National Park",          type:"park" },
+  { label:"Yellowstone, WY",              sublabel:"Yellowstone National Park",                  type:"park" },
+  { label:"Yosemite, CA",                 sublabel:"Yosemite National Park",                     type:"park" },
+  { label:"Zion, UT",                     sublabel:"Zion National Park",                         type:"park" },
+  { label:"Boundary Waters, MN",          sublabel:"BWCAW — canoe & portage country",            type:"park" },
+  { label:"Mt Whitney, CA",               sublabel:"Highest peak in lower 48 — Inyo NF",        type:"park" },
+  { label:"Mt St Helens, WA",             sublabel:"Mt St Helens National Volcanic Monument",    type:"park" },
+  { label:"Stehekin, WA",                 sublabel:"North Cascades NP — no roads in",            type:"park" },
+
+  // ── CANADIAN NATIONAL PARKS ────────────────────────────────────
+  { label:"Banff, AB",                    sublabel:"Banff National Park — Canadian Rockies",     type:"park" },
+  { label:"Jasper, AB",                   sublabel:"Jasper National Park — Canadian Rockies",    type:"park" },
+  { label:"Yoho, BC",                     sublabel:"Yoho National Park — BC Rockies",            type:"park" },
+  { label:"Kootenay, BC",                 sublabel:"Kootenay National Park",                     type:"park" },
+  { label:"Waterton Lakes, AB",           sublabel:"Waterton Lakes NP — border with Glacier NP", type:"park" },
+  { label:"Pacific Rim, BC",              sublabel:"Pacific Rim National Park Reserve",          type:"park" },
+  { label:"Gulf Islands, BC",             sublabel:"Gulf Islands National Park Reserve",         type:"park" },
+  { label:"Revelstoke, BC",               sublabel:"Mount Revelstoke National Park",             type:"park" },
+  { label:"Glacier, BC",                  sublabel:"Glacier National Park — BC",                 type:"park" },
+  { label:"Fundy, NB",                    sublabel:"Fundy National Park — highest tides",        type:"park" },
+  { label:"Cape Breton Highlands, NS",    sublabel:"Cape Breton Highlands National Park",        type:"park" },
+  { label:"Prince Edward Island, PEI",    sublabel:"Prince Edward Island National Park",         type:"park" },
+  { label:"Kejimkujik, NS",               sublabel:"Kejimkujik National Park",                   type:"park" },
+  { label:"Kouchibouguac, NB",            sublabel:"Kouchibouguac National Park",                type:"park" },
+  { label:"Gros Morne, NL",               sublabel:"Gros Morne National Park — Newfoundland",    type:"park" },
+  { label:"Terra Nova, NL",               sublabel:"Terra Nova National Park",                   type:"park" },
+  { label:"Forillon, QC",                 sublabel:"Forillon National Park — Gaspé Peninsula",   type:"park" },
+  { label:"La Mauricie, QC",              sublabel:"La Mauricie National Park",                  type:"park" },
+  { label:"Mingan Archipelago, QC",       sublabel:"Mingan Archipelago National Park Reserve",   type:"park" },
+  { label:"Georgian Bay Islands, ON",     sublabel:"Georgian Bay Islands National Park",         type:"park" },
+  { label:"Bruce Peninsula, ON",          sublabel:"Bruce Peninsula National Park",              type:"park" },
+  { label:"Point Pelee, ON",              sublabel:"Point Pelee National Park — bird migration", type:"park" },
+  { label:"Pukaskwa, ON",                 sublabel:"Pukaskwa National Park — Lake Superior",     type:"park" },
+  { label:"Riding Mountain, MB",          sublabel:"Riding Mountain National Park",              type:"park" },
+  { label:"Prince Albert, SK",            sublabel:"Prince Albert National Park",                type:"park" },
+  { label:"Elk Island, AB",               sublabel:"Elk Island National Park — bison herds",     type:"park" },
+  { label:"Wood Buffalo, AB",             sublabel:"Wood Buffalo National Park — largest in Canada", type:"park" },
+  { label:"Nahanni, NT",                  sublabel:"Nahanni National Park Reserve",              type:"park" },
+  { label:"Ivvavik, YT",                  sublabel:"Ivvavik National Park — Yukon Arctic",       type:"park" },
+  { label:"Kluane, YT",                   sublabel:"Kluane National Park — St. Elias Mountains", type:"park" },
+  { label:"Gwaii Haanas, BC",             sublabel:"Gwaii Haanas National Park Reserve",         type:"park" },
+  { label:"Haida Gwaii, BC",              sublabel:"Gwaii Haanas — Queen Charlotte Islands",     type:"park" },
+  { label:"Auyuittuq, NU",                sublabel:"Auyuittuq National Park — Baffin Island",    type:"park" },
+  { label:"Quttinirpaaq, NU",             sublabel:"Quttinirpaaq National Park — high Arctic",   type:"park" },
+  { label:"Sirmilik, NU",                 sublabel:"Sirmilik National Park",                     type:"park" },
+
+  // ── MAJOR US STATE PARKS ───────────────────────────────────────
+  { label:"Anza-Borrego, CA",             sublabel:"Anza-Borrego Desert State Park — CA",        type:"park" },
+  { label:"Julia Pfeiffer Burns, CA",     sublabel:"Julia Pfeiffer Burns State Park — Big Sur",  type:"park" },
+  { label:"Humboldt Redwoods, CA",        sublabel:"Humboldt Redwoods State Park",               type:"park" },
+  { label:"Custer State Park, SD",        sublabel:"Custer State Park — Black Hills",            type:"park" },
+  { label:"Adirondacks, NY",              sublabel:"Adirondack Park — 6M acres",                 type:"park" },
+  { label:"Catskills, NY",                sublabel:"Catskill Park — Hudson Valley",               type:"park" },
+  { label:"Baxter State Park, ME",        sublabel:"Baxter State Park — Mt Katahdin",            type:"park" },
+  { label:"Palomar Mountain, CA",         sublabel:"Palomar Mountain State Park",                type:"park" },
+  { label:"Silver Falls, OR",             sublabel:"Silver Falls State Park — waterfall trail",  type:"park" },
+  { label:"Moran State Park, WA",         sublabel:"Moran State Park — Orcas Island",            type:"park" },
+  { label:"Deception Pass, WA",           sublabel:"Deception Pass State Park",                  type:"park" },
+  { label:"Ecola State Park, OR",         sublabel:"Ecola State Park — coastal headlands",       type:"park" },
+  { label:"Smith Rock, OR",               sublabel:"Smith Rock State Park — rock climbing",      type:"park" },
+  { label:"Valley of Fire, NV",           sublabel:"Valley of Fire State Park",                  type:"park" },
+  { label:"Goblin Valley, UT",            sublabel:"Goblin Valley State Park",                   type:"park" },
+  { label:"Palo Duro Canyon, TX",         sublabel:"Palo Duro Canyon State Park — Texas Grand Canyon", type:"park" },
+  { label:"Matthiessen, IL",              sublabel:"Matthiessen State Park — canyons & waterfalls", type:"park" },
+  { label:"Ricketts Glen, PA",            sublabel:"Ricketts Glen State Park — 22 waterfalls",   type:"park" },
+  { label:"Watkins Glen, NY",             sublabel:"Watkins Glen State Park — gorge trail",      type:"park" },
+  { label:"Cloudland Canyon, GA",         sublabel:"Cloudland Canyon State Park",                type:"park" },
+  { label:"Cheaha, AL",                   sublabel:"Cheaha State Park — highest point in AL",    type:"park" },
+  { label:"Starved Rock, IL",             sublabel:"Starved Rock State Park — canyon waterfalls", type:"park" },
+  { label:"Minnehaha, MN",                sublabel:"Minnehaha Regional Park — falls",            type:"park" },
+  { label:"Tahquamenon Falls, MI",        sublabel:"Tahquamenon Falls State Park",               type:"park" },
+  { label:"Itasca, MN",                   sublabel:"Itasca State Park — Mississippi headwaters", type:"park" },
+  { label:"Natural Bridge, VA",           sublabel:"Natural Bridge State Park",                  type:"park" },
+  { label:"Hanging Rock, NC",             sublabel:"Hanging Rock State Park",                    type:"park" },
+  { label:"Cumberland Gap, KY",           sublabel:"Cumberland Gap National Historical Park",    type:"park" },
+
+  // ── PNW MOUNTAINS & VOLCANOES ─────────────────────────────────
+  { label:"Mt Baker, WA",                 sublabel:"Mt Baker-Snoqualmie National Forest",        type:"forest" },
+  { label:"Mount Baker, WA",              sublabel:"Mt Baker-Snoqualmie National Forest",        type:"forest" },
+  { label:"Mt Baker-Snoqualmie, WA",      sublabel:"Mt Baker-Snoqualmie National Forest",        type:"forest" },
+  { label:"Mt Hood, OR",                  sublabel:"Mt Hood National Forest",                    type:"forest" },
+  { label:"Mount Hood, OR",               sublabel:"Mt Hood National Forest",                    type:"forest" },
+  { label:"Mt Adams, WA",                 sublabel:"Gifford Pinchot National Forest",            type:"forest" },
+  { label:"Mt Jefferson, OR",             sublabel:"Mt Jefferson Wilderness — Willamette NF",    type:"forest" },
+  { label:"Three Sisters, OR",            sublabel:"Three Sisters Wilderness — Deschutes NF",    type:"forest" },
+  { label:"Glacier Peak, WA",             sublabel:"Glacier Peak Wilderness — Okanogan NF",      type:"forest" },
+  { label:"Enchantments, WA",             sublabel:"Alpine Lakes Wilderness — Okanogan NF",      type:"forest" },
+  { label:"Snoqualmie Pass, WA",          sublabel:"Mt Baker-Snoqualmie NF — I-90 corridor",     type:"forest" },
+  { label:"Stevens Pass, WA",             sublabel:"Mt Baker-Snoqualmie NF — Hwy 2 corridor",    type:"forest" },
+  { label:"Okanogan-Wenatchee, WA",       sublabel:"Okanogan-Wenatchee National Forest",         type:"forest" },
+  { label:"Mt Shasta, CA",                sublabel:"Shasta-Trinity National Forest",             type:"forest" },
+
+  // ── PNW MAJOR CITIES & TOWNS ──────────────────────────────────
+  { label:"Seattle, WA",                  sublabel:"Gateway to Cascades, Olympics & Islands",    type:"city" },
+  { label:"Portland, OR",                 sublabel:"Gateway to Mt Hood, Columbia Gorge & coast", type:"city" },
+  { label:"Vancouver, BC",                sublabel:"Gateway to North Shore mountains & BC parks", type:"city" },
+  { label:"Victoria, BC",                 sublabel:"Vancouver Island — gateway to Pacific Rim",  type:"city" },
+  { label:"Olympia, WA",                  sublabel:"Capital city — Olympic Peninsula gateway",   type:"city" },
+  { label:"Tacoma, WA",                   sublabel:"Near Mt Rainier NP & Puget Sound",           type:"city" },
+  { label:"Bellingham, WA",               sublabel:"Gateway to Mt Baker & North Cascades",       type:"city" },
+  { label:"Everett, WA",                  sublabel:"Snohomish County — Cascades access",         type:"city" },
+  { label:"Spokane, WA",                  sublabel:"Eastern WA — gateway to Idaho wilderness",   type:"city" },
+  { label:"Wenatchee, WA",                sublabel:"Apple capital — Cascades & Columbia River",  type:"city" },
+  { label:"Yakima, WA",                   sublabel:"Eastern Cascades & wine country",            type:"city" },
+  { label:"Leavenworth, WA",              sublabel:"Wenatchee NF & Cascades — Bavarian village", type:"city" },
+  { label:"Winthrop, WA",                 sublabel:"Methow Valley — Okanogan NF & cross-country skiing", type:"city" },
+  { label:"Twisp, WA",                    sublabel:"Methow Valley — Okanogan-Wenatchee NF",      type:"city" },
+  { label:"Enumclaw, WA",                 sublabel:"Eastern gateway to Mt Rainier NP",           type:"city" },
+  { label:"Ashford, WA",                  sublabel:"Southwest entrance to Mt Rainier NP",        type:"city" },
+  { label:"Packwood, WA",                 sublabel:"Gifford Pinchot NF & Rainier gateway",       type:"city" },
+  { label:"Eatonville, WA",               sublabel:"Near Mt Rainier NP — Nisqually entrance",    type:"city" },
+  { label:"Port Angeles, WA",             sublabel:"Olympic NP north entrance & Hurricane Ridge", type:"city" },
+  { label:"Port Townsend, WA",            sublabel:"Olympic Peninsula — Victorian seaport",      type:"city" },
+  { label:"Sequim, WA",                   sublabel:"Olympic Peninsula — rain shadow valley",     type:"city" },
+  { label:"Aberdeen, WA",                 sublabel:"Grays Harbor — Quinault Rainforest access",  type:"city" },
+  { label:"Long Beach, WA",               sublabel:"Long Beach Peninsula — Pacific coast",       type:"city" },
+  { label:"Friday Harbor, WA",            sublabel:"San Juan Island — whale watching & hiking",  type:"city" },
+  { label:"Anacortes, WA",                sublabel:"San Juan Islands ferry hub — Cascades",      type:"city" },
+  { label:"Mount Vernon, WA",             sublabel:"Skagit Valley — North Cascades gateway",     type:"city" },
+  { label:"Sedro-Woolley, WA",            sublabel:"North Cascades NP west entrance",            type:"city" },
+  { label:"Concrete, WA",                 sublabel:"Upper Skagit Valley — Baker Lake area",      type:"city" },
+  { label:"Index, WA",                    sublabel:"Sky Valley — climbing & hiking hub",         type:"city" },
+  { label:"Gold Bar, WA",                 sublabel:"Wallace Falls & Index rock climbing",        type:"city" },
+  { label:"Bend, OR",                     sublabel:"Central Oregon — Cascade Range",             type:"city" },
+  { label:"Medford, OR",                  sublabel:"Rogue Valley — Crater Lake & Cascades",      type:"city" },
+  { label:"Ashland, OR",                  sublabel:"Near Cascade-Siskiyou NM & Mt Ashland",      type:"city" },
+  { label:"Eugene, OR",                   sublabel:"Willamette Valley — McKenzie River & Cascades", type:"city" },
+  { label:"Bend, OR",                     sublabel:"Central Oregon — Deschutes NF & Cascades",   type:"city" },
+  { label:"Sisters, OR",                  sublabel:"Three Sisters Wilderness gateway — Deschutes NF", type:"city" },
+  { label:"Cascade Locks, OR",            sublabel:"Columbia River Gorge — Bridge of the Gods",  type:"city" },
+  { label:"Hood River, OR",               sublabel:"Columbia River Gorge & Mt Hood",             type:"city" },
+  { label:"The Dalles, OR",               sublabel:"East Columbia Gorge — Deschutes River",      type:"city" },
+  { label:"Astoria, OR",                  sublabel:"Columbia River mouth — Clatsop State Forest", type:"city" },
+  { label:"Cannon Beach, OR",             sublabel:"Oregon coast — Ecola State Park",            type:"city" },
+  { label:"Lincoln City, OR",             sublabel:"Oregon central coast — Siuslaw NF",          type:"city" },
+  { label:"Newport, OR",                  sublabel:"Oregon coast — Siuslaw National Forest",     type:"city" },
+  { label:"Coos Bay, OR",                 sublabel:"Oregon south coast — Oregon Dunes NRA",      type:"city" },
+  { label:"Grants Pass, OR",              sublabel:"Rogue River — Siskiyou NF & whitewater",     type:"city" },
+  { label:"Kelowna, BC",                  sublabel:"Okanagan Valley — Provincial parks & wine",  type:"city" },
+  { label:"Penticton, BC",                sublabel:"South Okanagan — biking & hiking trails",    type:"city" },
+  { label:"Kamloops, BC",                 sublabel:"Thompson Valley — Sun Peaks & provincial parks", type:"city" },
+  { label:"Prince George, BC",            sublabel:"Central BC — gateway to northern wilderness", type:"city" },
+  { label:"Prince Rupert, BC",            sublabel:"North BC coast — Skeena country",            type:"city" },
+  { label:"Tofino, BC",                   sublabel:"Pacific Rim NP Reserve — surf & rainforest", type:"city" },
+  { label:"Ucluelet, BC",                 sublabel:"Pacific Rim NP Reserve — Wild Pacific Trail", type:"city" },
+  { label:"Whistler, BC",                 sublabel:"Garibaldi Provincial Park — world-class trails", type:"city" },
+  { label:"Squamish, BC",                 sublabel:"Sea-to-Sky corridor — Stawamus Chief",       type:"city" },
+  { label:"Pemberton, BC",                sublabel:"Lillooet Lake & Joffre Lakes Provincial Park", type:"city" },
+  { label:"Revelstoke, BC",               sublabel:"Mt Revelstoke NP & Glacier NP",              type:"city" },
+  { label:"Golden, BC",                   sublabel:"Yoho & Kootenay NPs — Canadian Rockies",     type:"city" },
+  { label:"Fernie, BC",                   sublabel:"Elk Valley — Mt Fernie Provincial Park",     type:"city" },
+  { label:"Nelson, BC",                   sublabel:"Kootenay Lake — Kokanee Glacier PP",         type:"city" },
+
+  // ── OTHER MAJOR US DESTINATIONS ───────────────────────────────
+  { label:"Moab, UT",                     sublabel:"Red rock country — Arches & Canyonlands",    type:"city" },
+  { label:"Sedona, AZ",                   sublabel:"Red rock formations & trails",               type:"city" },
+  { label:"Asheville, NC",                sublabel:"Blue Ridge Mountains gateway",               type:"city" },
+  { label:"Flagstaff, AZ",                sublabel:"Gateway to Grand Canyon & Coconino NF",      type:"city" },
+  { label:"Bozeman, MT",                  sublabel:"Near Yellowstone & Gallatin NF",             type:"city" },
+  { label:"Jackson, WY",                  sublabel:"Gateway to Grand Teton & Yellowstone",       type:"city" },
+  { label:"Lake Tahoe, CA",               sublabel:"Sierra Nevada alpine lake",                  type:"region" },
+  { label:"Big Sur, CA",                  sublabel:"Coastal redwoods & Pacific views",           type:"region" },
+  { label:"White Mountains, NH",          sublabel:"White Mountain National Forest",             type:"forest" },
+  { label:"Deschutes, OR",                sublabel:"Deschutes National Forest",                  type:"forest" },
+  { label:"Pike-San Isabel, CO",          sublabel:"Pike & San Isabel National Forests",         type:"forest" },
+  { label:"Coconino, AZ",                 sublabel:"Coconino National Forest",                   type:"forest" },
+  { label:"Chattahoochee, GA",            sublabel:"Chattahoochee-Oconee National Forest",       type:"forest" },
+  { label:"Black Hills, SD",              sublabel:"Black Hills National Forest",                type:"forest" },
+  { label:"Ouray, CO",                    sublabel:"Colorado's 'Switzerland of America'",        type:"city" },
+  { label:"Whitefish, MT",                sublabel:"Near Glacier NP & Flathead NF",              type:"city" },
+  { label:"Durango, CO",                  sublabel:"San Juan Mountains gateway",                 type:"city" },
+  { label:"Estes Park, CO",               sublabel:"Gateway to Rocky Mountain NP",               type:"city" },
+  { label:"Mammoth Lakes, CA",            sublabel:"Sierra Nevada — Inyo NF",                    type:"city" },
+  { label:"Bishop, CA",                   sublabel:"Eastern Sierra & John Muir Wilderness",      type:"city" },
+  { label:"Taos, NM",                     sublabel:"Carson NF & Wheeler Peak",                   type:"city" },
+  { label:"Santa Fe, NM",                 sublabel:"Sangre de Cristo Mountains — Santa Fe NF",   type:"city" },
+  { label:"Stowe, VT",                    sublabel:"Green Mountains & Long Trail",               type:"city" },
+  { label:"Heber City, UT",               sublabel:"Uinta-Wasatch-Cache NF gateway",             type:"city" },
+  { label:"Crested Butte, CO",            sublabel:"Gunnison NF & Elk Mountains",                type:"city" },
+  { label:"Frank Church Wilderness, ID",  sublabel:"Largest lower-48 wilderness area",           type:"forest" },
+  { label:"Ozark, MO",                    sublabel:"Ozark National Scenic Riverways",            type:"region" },
+  { label:"Pisgah, NC",                   sublabel:"Pisgah National Forest",                     type:"forest" },
+  { label:"Sawtooth, ID",                 sublabel:"Sawtooth National Recreation Area",          type:"park" },
+  { label:"Sun Valley, ID",               sublabel:"Sawtooth NRA & Pioneer Mountains",           type:"city" },
+  { label:"Coeur d'Alene, ID",            sublabel:"Northern Idaho — Coeur d'Alene NF",          type:"city" },
+  { label:"Missoula, MT",                 sublabel:"Lolo NF — Gateway to Bitterroot & Rattlesnake", type:"city" },
+  { label:"Kalispell, MT",                sublabel:"Flathead Valley — gateway to Glacier NP",    type:"city" },
+  { label:"Livingston, MT",               sublabel:"Gallatin NF — Yellowstone River gateway",    type:"city" },
 ];
 
 function fuzzyMatch(q, dest) {
@@ -823,7 +1021,7 @@ export default function App() {
         <div className="search-panel">
           <h2>🔍 Plan Your Adventure</h2>
           <div className="field-grid">
-            <div className="field" style={{ gridColumn:"span 2" }}>
+            <div className="field" style={{ gridColumn:"1 / -1" }}>
               <label>Location / City / Park</label>
               <LocationInput value={location} onChange={setLocation} />
             </div>
@@ -850,7 +1048,9 @@ export default function App() {
               </button>
             ))}
           </div>
-          <button className="btn-search" onClick={handleSearch} disabled={!location.trim()}>🔎 Search</button>
+          <div className="search-bottom">
+            <button className="btn-search" onClick={handleSearch} disabled={!location.trim()}>🔎 Search</button>
+          </div>
         </div>
 
         <div className="tab-bar">
