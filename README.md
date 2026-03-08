@@ -62,4 +62,5 @@ Your API key is used **directly from the browser**. This is fine for personal us
 ![](https://github.com/justsaiingthings-collab/WildRoute/blob/main/images/campsites.png)
 ![](https://github.com/justsaiingthings-collab/WildRoute/blob/main/images/dispersed.png)
 ![](https://github.com/justsaiingthings-collab/WildRoute/blob/main/images/dispersedData.png)
+![](https://github.com/justsaiingthings-collab/WildRoute/blob/main/images/trails.png)
 
