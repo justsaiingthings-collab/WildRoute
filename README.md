@@ -56,3 +56,10 @@ Your API key is used **directly from the browser**. This is fine for personal us
 - Add a Vercel Edge Function as a proxy (keeps key server-side)
 - Set spending limits at [console.anthropic.com](https://console.anthropic.com/)
 - Password-protect the Vercel deployment (Vercel dashboard → Settings → Password Protection)
+
+## Screen Shots
+
+![](https://github.com/justsaiingthings-collab/WildRoute/blob/main/images/campsites.png)
+![](https://github.com/justsaiingthings-collab/WildRoute/blob/main/images/dispersed.png)
+![](https://github.com/justsaiingthings-collab/WildRoute/blob/main/images/dispersedData.png)
+
